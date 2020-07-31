@@ -91,10 +91,10 @@ class SnakeEnv(gym.Env):
         #debug 
         print("_move_snake()::self.snake_segments (new snake):", self.snake_segments)
 
-    def _check_collision(self):
+    def _check_collision(self, snake_head=self.snake_segments[0]):
         # Borders
-        if self.snake_segments[0][0] == self.ENV_HEIGHT or self.snake_segments[0][1] == self.ENV_WIDTH + self.SEGMENT_WIDTH or \
-            self.snake_segments[0][0] == -self.SEGMENT_WIDTH or self.snake_segments[0][1] == -self.SEGMENT_WIDTH:
+        if snake_head[0] == self.ENV_HEIGHT or snake_head[1] == self.ENV_WIDTH + self.SEGMENT_WIDTH or \
+            snake_head[0] == -self.SEGMENT_WIDTH or snake_head[1] == -self.SEGMENT_WIDTH:
             print("[!] Snake crashed to the wall! Exiting...")
             return True
 
@@ -114,13 +114,13 @@ class SnakeEnv(gym.Env):
         #* Growing the snake
         additional_segment = self.snake_segments[len(snake_segments)-1:]
 
-        if facing == 0: 
+        if self.facing == 0: 
             additional_segment = np.add(additional_segment, (0, SEGMENT_WIDTH))
-        if facing == 1:
+        if self.facing == 1:
             additional_segment = np.subtract(additional_segment, (SEGMENT_WIDTH, 0))
-        if facing == 2:
+        if self.facing == 2:
             additional_segment = np.subtract(additional_segment, (0, SEGMENT_WIDTH))
-        if facing == 3:
+        if self.facing == 3:
             additional_segment = np.add(additional_segment, (SEGMENT_WIDTH, 0))
 
         self.snake_segments.append(tuple(additional_segment[0]))
@@ -132,3 +132,28 @@ class SnakeEnv(gym.Env):
 
     def _spawn_apple(self):
         return (random.randrange(0,50) * self.SEGMENT_WIDTH, random.randrange(0,50) * self.SEGMENT_WIDTH)
+
+    
+    #* Observations
+    # Snake 
+    #TODO look-ahead for snake-body new position
+    def _get_next_step_clearance(self):
+        # UP
+        new_snake_head_pos = np.subtract(self.snake_segments[0], (0, self.SEGMENT_WIDTH))
+        if self._check_collision(new_snake_head_pos):
+            left_collision = True
+        else: 
+            left_collision = False
+
+        # RIGHT
+
+        # DOWN
+
+        # LEFT
+        new_snake_head_pos = np.subtract(self.snake_segments[0], (self.SEGMENT_WIDTH, 0))
+        if self._check_collision(new_snake_head_pos):
+            left_collision = True
+        else: 
+            left_collision = False
+
+        

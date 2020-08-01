@@ -9,17 +9,20 @@ import numpy as np
 class SnakeEnv(gym.Env):
     metadata = {'render.modes': ['human']}
 
-    def __init__(self):
+    def __init__(self, render=False):
         self.ENV_HEIGHT = 500 
         self.ENV_WIDTH = 500
         self.VELOCITY = 10 # How much to move per unit  
         self.action_space = spaces.Discrete(4)
         self.SEGMENT_WIDTH = 10
+        self.RENDER = render
 
         # Render using pygame
-        self.window = pygame.display.set_mode((self.ENV_HEIGHT, self.ENV_WIDTH))
+        if render:
+            self.window = pygame.display.set_mode((self.ENV_HEIGHT, self.ENV_WIDTH))
 
     def step(self, action):
+        reward = 0 # initialize per step
         opp_facing = (self.facing + 2) % 4 # Calculate opposite of facing
         # If direction and action is NOT the same and not opposite of current direction facing
         if action != self.facing and action != opp_facing:
@@ -29,15 +32,23 @@ class SnakeEnv(gym.Env):
         #* Advancing the snake
         self._move_snake()
         self.done = self._check_collision()
-        #if self.done:
-        #    print("[!] Snake collided! Game ended.") #TODO put as part of info?
+        if self.done:
+            reward = -1 # 
+        
 
         #* Consuming apple + growing
         #Simple Reward: Eating apple (1 point)
         if self._check_eaten():
-            reward = 1
-        else:
-            reward = 0
+            reward += 10
+
+        #* Additional reward for moving closer towards the red apple
+        if self.snake_previous:
+            # Distance between 
+            if all(abs(np.subtract(self.apple_pos, self.snake_segments[0])) <= abs(np.subtract(self.apple_pos, self.snake_previous))):
+                reward += 0.1
+
+        #* Final adjustments
+        self.snake_previous = self.snake_segments[0]
 
         #* Observations
         # State: 4 x collision (True/False), 4 x Snake Facing Direction (True/False), 4 x relative apple position (True/False)
@@ -51,12 +62,13 @@ class SnakeEnv(gym.Env):
         # Snake starting position
         #TODO randomize starting
         self.snake_segments = [(250,250),(250,260),(250,270)]
+        self.snake_previous = None # Tuple
         self.facing = 0 # 0 is up, 1 is right, 2 is down, 3 is left #TODO randomize
         # Apple starting position
         self.apple_pos = self._spawn_apple()
 
         #debug - hardcoding apple_pos
-        self.apple_pos = (250,240)
+        #self.apple_pos = (250,240)
 
         # 'Done' state
         self.done = False
@@ -64,6 +76,9 @@ class SnakeEnv(gym.Env):
         return #? need to return state?
 
     def render(self, mode='human', close=False):
+        if not self.render:
+            print("[!] Error rendering. Disable during object instantiation.")
+            return
         #* Draw & Display
         self.window.fill((0,0,0)) # Clear screen to color black again
         # Snake head
@@ -105,21 +120,21 @@ class SnakeEnv(gym.Env):
         # Borders
         if snake_head[0] == self.ENV_HEIGHT or snake_head[1] == self.ENV_WIDTH + self.SEGMENT_WIDTH or \
             snake_head[0] == -self.SEGMENT_WIDTH or snake_head[1] == -self.SEGMENT_WIDTH:
-            return True
+            return 1
 
         # Snake itself
         for segment in self.snake_segments[1:]:
             if self.snake_segments[0] == segment:
-                return True
+                return 1
 
-        return False
+        return 0
 
     def _check_eaten(self):
         if self.snake_segments[0] == self.apple_pos:
             pass 
             #print("[+] NOM!") #debug
         else:
-            return False
+            return 0
 
         #* Growing the snake
         '''
@@ -146,27 +161,10 @@ class SnakeEnv(gym.Env):
         #* Respawn Apple at random location
         self.apple_pos = self._spawn_apple()
 
-        return True
+        return 1
 
     def _spawn_apple(self):
         return (random.randrange(0,50) * self.SEGMENT_WIDTH, random.randrange(0,50) * self.SEGMENT_WIDTH)
-
-    # Based on direction snake is facing, calculate new snake head position
-    def _next_step_snake_head_position(self):
-        pass
-        #? may not be necessary
-        '''
-        if self.facing == 0:
-            new_snake_head_pos = np.subtract(self.snake_segments[0], (0, self.SEGMENT_WIDTH))
-        elif self.facing == 1:
-            new_snake_head_pos = np.add(self.snake_segments[0], (self.SEGMENT_WIDTH, 0))
-        elif self.facing == 2:
-            new_snake_head_pos = np.add(self.snake_segments[0], (0, self.SEGMENT_WIDTH))
-        else:
-            new_snake_head_pos = np.subtract(self.snake_segments[0], (self.SEGMENT_WIDTH, 0))
-
-        return new_snake_head_pos
-        '''
         
     #* Observations
     # Snake 
@@ -193,37 +191,37 @@ class SnakeEnv(gym.Env):
         return up_collision, right_collision, down_collision, left_collision
     
     def _facing_direction(self):
-        face_up = face_right = face_down = face_left = False
+        face_up = face_right = face_down = face_left = 0
 
         if self.facing == 0:
-            face_up = True
+            face_up = 1
         if self.facing == 1:
-            face_right = True
+            face_right = 1
         if self.facing == 2:
-            face_down = True
+            face_down = 1
         if self.facing == 3:
-            face_left = True
+            face_left = 1
 
         return face_up, face_right, face_down, face_left 
 
     # From current position, where is the food? Above, right, left or below
     def _food_relative_direction(self):
-        apple_above = apple_right = apple_below = apple_left = False
+        apple_above = apple_right = apple_below = apple_left = 0
 
         # Above
         if self.apple_pos[1] < self.snake_segments[0][1]:
-            apple_above = True
+            apple_above = 1
 
         # Right of 
         if self.apple_pos[0] > self.snake_segments[0][0]:
-            apple_right = True 
+            apple_right = 1 
 
         # Below - apple(y) > snake(y)
         if self.apple_pos[1] > self.snake_segments[0][1]:
-            apple_below = True 
+            apple_below = 1 
 
         # Left of
         if self.apple_pos[0] < self.snake_segments[0][0]:
-            apple_left = True 
+            apple_left = 1 
 
         return apple_above, apple_right, apple_below, apple_left

@@ -19,8 +19,19 @@ Standard Snake game. If you owned a Nokia phone ever, you would have played this
 Pressing the movement while in the same direction yields no action. 
 For example, if the snake is facing North, press Up will effectively do nothing.
 
-## Reward
-Reward is given every time the snake eats the red apple
+## Reward System
+Reward is given when an action is performed, be it positive, neutral or negative (points).
+
+### Simple reward
+- Every time the snake eats the red apple (1 point)
+
+### Slightly more complex reward
+- Every time the snake doesn't bump into things (1 points)
+- Every time the snake move closer to the red apple on either the x or y axes (2 points)
+- Every time the snake eats the red apple (100 points)
+
+### More complex reward
+- To include: Every 100 steps without eating red apple (-100 points)
 
 ## Starting State:
 Snake starts at a random position within a given boundary

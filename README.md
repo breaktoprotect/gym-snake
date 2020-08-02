@@ -7,8 +7,13 @@ I'm a control freak so I like to have control over the environment itself, thus 
 Standard Snake game. If you owned a Nokia phone ever, you would have played this game. 
 
 ## Source
+TODO
 
 ## Observations
+4 x Collision detection (next step)
+4 x Apple "GPS" - Above, right-of, below, left-of (global)
+1 x Scalar distance between Apple and Snake's head
+1 x If snake ate an apple this round
 
 ## Actions
 0 - Up
@@ -33,8 +38,14 @@ Reward is given when an action is performed, be it positive, neutral or negative
 ### More complex reward
 - To include: Every 100 steps without eating red apple (-100 points)
 
+### Current Experiment Reward
+- Every time snake moves closer to red apple (0.01 point)
+- Every time snake eats apple (10 points)
+- Every time snake dies (-1 point)
+
 ## Starting State:
 Snake starts at a random position within a given boundary
 Apple appears at a random position throughout accessible positions in the environment. Changes position whenever it gets eaten.
 
 ## Episode Termination:
+Snake collides with wall or itself.

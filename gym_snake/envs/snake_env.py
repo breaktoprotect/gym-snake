@@ -5,6 +5,7 @@ from gym.utils import seeding
 import pygame
 import random
 import numpy as np
+import math
 
 class SnakeEnv(gym.Env):
     metadata = {'render.modes': ['human']}
@@ -45,18 +46,27 @@ class SnakeEnv(gym.Env):
         if self.snake_previous:
             # Distance between 
             if all(abs(np.subtract(self.apple_pos, self.snake_segments[0])) <= abs(np.subtract(self.apple_pos, self.snake_previous))):
-                reward += 0.1
+                reward += 0.01
 
         #* Final adjustments
         self.snake_previous = self.snake_segments[0]
-
-        #* Observations
+        
+        #* old Observations
+        '''
         # State: 4 x collision (True/False), 4 x Snake Facing Direction (True/False), 4 x relative apple position (True/False)
         up_collision, right_collision, down_collision, left_collision = self._next_step_collision()
-        face_up, face_right, face_down, face_left = self._facing_direction() 
+         
         apple_above, apple_right, apple_below, apple_left = self._food_relative_direction()
 
         return (up_collision, right_collision, down_collision, left_collision, face_up, face_right, face_down, face_left, apple_above, apple_right, apple_below, apple_left), reward, self.done, {}
+        '''
+
+        #* Experimental Observations
+        up_collision, right_collision, down_collision, left_collision = self._next_step_collision()
+        apple_above, apple_right, apple_below, apple_left = self._food_relative_direction()
+        distance_to_apple = self._distance_to_apple()
+
+        return (up_collision, right_collision, down_collision, left_collision, apple_above, apple_right, apple_below, apple_left, distance_to_apple, self._check_eaten()), reward, self.done, {}
 
     def reset(self):
         # Snake starting position
@@ -66,9 +76,6 @@ class SnakeEnv(gym.Env):
         self.facing = 0 # 0 is up, 1 is right, 2 is down, 3 is left #TODO randomize
         # Apple starting position
         self.apple_pos = self._spawn_apple()
-
-        #debug - hardcoding apple_pos
-        #self.apple_pos = (250,240)
 
         # 'Done' state
         self.done = False
@@ -166,7 +173,7 @@ class SnakeEnv(gym.Env):
     def _spawn_apple(self):
         return (random.randrange(0,50) * self.SEGMENT_WIDTH, random.randrange(0,50) * self.SEGMENT_WIDTH)
         
-    #* Observations
+    #* Observation Functions
     # Snake 
     #TODO look-ahead for snake-body new position
     def _next_step_collision(self):
@@ -225,3 +232,23 @@ class SnakeEnv(gym.Env):
             apple_left = 1 
 
         return apple_above, apple_right, apple_below, apple_left
+
+    # Calculate scalar distance between snake head's and apple
+    def _distance_to_apple(self, snake=None):
+        if not snake:
+            snake = self.snake_segments[0] # snake's head
+
+        snake_x = snake[0]
+        snake_y = snake[1]        
+        apple_x = self.apple_pos[0]
+        apple_y = self.apple_pos[1]
+
+
+        # Calculate distance formula
+        max_distance = math.sqrt(self.ENV_WIDTH**2 + self.ENV_HEIGHT**2)
+        distance = math.sqrt((apple_x - snake_x)**2 + (apple_y - snake_y)**2)
+
+        # Normalized distance
+        norm_distance = 1- (distance / max_distance) # Higher value for closer distance (increase neuron stimulation?)
+
+        return norm_distance
